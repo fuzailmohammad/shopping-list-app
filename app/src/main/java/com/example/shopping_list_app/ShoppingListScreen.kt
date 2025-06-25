@@ -6,10 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,9 +15,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -29,6 +23,7 @@ fun ShoppingListScreen() {
     var showDialog by remember { mutableStateOf(false) }
     var itemName by remember { mutableStateOf("") }
     var itemQuantity by remember { mutableStateOf("") }
+    var editingItemId by remember { mutableStateOf<Int?>(null) }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -53,72 +48,45 @@ fun ShoppingListScreen() {
                 .padding(16.dp)
         ) {
             items(sItems) {
-                // Display each shopping item
-                Text(
-                    text = "${it.name} (Quantity: ${it.quantity})",
-                    modifier = Modifier.padding(8.dp)
-                )
+                ShoppingItemRow(item = it, onEdit = {
+                    itemName = it.name
+                    itemQuantity = it.quantity.toString()
+                    editingItemId = it.id
+                    showDialog = true
+                }, onDelete = {
+                    sItems = sItems.filter { item -> item.id != it.id }
+                })
             }
         }
     }
     if (showDialog) {
-        // Show dialog for adding/editing shopping item
-        // This part is not implemented in this snippet, but you can use a Dialog composable
-        // to show a form for adding or editing a shopping item.
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = {
-                Text(
-                    "Add/Edit Shopping Item",
-                    textAlign = TextAlign.Center
-                )
-            },
-            text = {
-                // Here you can add TextFields for item name and quantity
-                Column {
-                    Text(
-                        "This is where you would add or edit a shopping item.",
-                        textAlign = TextAlign.Center
-                    )
-                    OutlinedTextField(
-                        value = itemName,
-                        onValueChange = { itemName = it },
-                        label = { Text("Item Name") },
-                        modifier = Modifier.padding(bottom = 8.dp),
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Sentences,
-                            keyboardType = KeyboardType.Text,
-                        ),
-                    )
-                    OutlinedTextField(
-                        value = itemQuantity,
-                        onValueChange = { itemQuantity = it },
-                        label = { Text("Item Quantity") },
-                        modifier = Modifier.padding(bottom = 8.dp),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
-                        ),
-                        singleLine = true,
-                    )
-                }
-            },
-            confirmButton = {
-                Button(onClick = {
-                    showDialog = false; sItems = sItems +
-                        ShoppingItem(
-                            id = sItems.size + 1, // Simple ID generation
-                            itemName,
-                            itemQuantity.toIntOrNull() ?: 1, // Default to 1 if parsing fails
+        ShoppingItemDialog(
+            itemName = itemName,
+            onNameChange = { itemName = it },
+            itemQuantity = itemQuantity,
+            onQuantityChange = { itemQuantity = it },
+            onConfirm = {
+                showDialog = false
+                if (editingItemId != null) {
+                    sItems = sItems.map {
+                        if (it.id == editingItemId) it.copy(
+                            name = itemName,
+                            quantity = itemQuantity.toIntOrNull() ?: 1
                         )
-
-                }) {
-                    Text("Confirm")
+                        else it
+                    }
+                } else {
+                    sItems = sItems + ShoppingItem(
+                        id = (sItems.maxOfOrNull { it.id } ?: 0) + 1,
+                        itemName,
+                        itemQuantity.toIntOrNull() ?: 1
+                    )
                 }
+                editingItemId = null
             },
-            dismissButton = {
-                Button(onClick = { showDialog = false }) {
-                    Text("Dismiss")
-                }
+            onDismiss = {
+                showDialog = false
+                editingItemId = null
             }
         )
     }
