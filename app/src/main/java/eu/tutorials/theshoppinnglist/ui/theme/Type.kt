@@ -1,4 +1,4 @@
-package com.example.shopping_list_app.ui.theme
+package eu.tutorials.theshoppinnglist.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
